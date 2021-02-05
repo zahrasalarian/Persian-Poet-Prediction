@@ -24,24 +24,17 @@ def main():
     if len(sys.argv) != 2:
         sys.exit("Usage: python questions.py corpus")
 
-    # Calculate IDF values across files
     files = load_files(sys.argv[1])
-    #print(files)
-    #return 0
     file_words = {
         filename: tokenize(files[filename], filename)
         for filename in files
     }
-    #print(file_words["ferdowsi_train.txt"][1])
-    #file_counts = compute_counts(file_words)
-    #print(file_counts)
-    #print("enter")
-    #s = input()
-    landa_epsilon = [0.5, 0.1, 0.2, 0.7]
-    print("whhhhhhaaaaaaaaa")
-    print(landa_epsilon)
-    #sentence = input()
-    ans = probability("هر کسی از ظنّ خود ، شد یار من", file_words, landa_epsilon)
+    landa_epsilon = [0.1, 0.05, 0.05, 0.9]
+    #ans = probability("هر کسی از ظنّ خود ، شد یار من", file_words, landa_epsilon)
+
+    # test
+    accuracy = evaluate_accuracy(file_words, landa_epsilon)
+    print(accuracy)
 
 def load_files(directory):
     inf = {}
@@ -51,9 +44,8 @@ def load_files(directory):
         f = open(file, encoding="utf8")
         data = f.read()
         inf[file] = data
+    os.chdir(r"..")
     return inf
-    #print(len(inf["python.txt"][0]))
-
 
 def tokenize(document, filename):
     #nltk.download()
@@ -86,19 +78,10 @@ def tokenize(document, filename):
             bi_count_doc_temp[bi] += 1
 
     return [uni_count_doc_temp, bi_count_doc_temp]
-    
-
-    #tokens.sort()
-    #print(tokens)
-    return [tokens, bigram_tokens]
-
-
 
 def probability(sentence, file_counts, landa_epsilon):
     tokens = regex.findall(r'\p{L}+', sentence.replace('\u200c', ''))
     tokens.reverse()
-    #print("\n")
-    print(tokens)
 
     # ferdowsi_train
     ferdowsi_prob = 1  
@@ -175,6 +158,22 @@ def probability(sentence, file_counts, landa_epsilon):
         return 2
     elif p_ans == molavi_prob:
         return 3
+
+def evaluate_accuracy(file_words, landa_epsilon):
+    file = 'test_file.txt'
+    true = 0
+    total = 0
+    f = open(file, encoding="utf8")
+    lines = f.readlines()
+    for line in lines:
+        l = line.split('\t')
+        l[1] = l[1].replace('\u200c', '').replace('\n', '')
+        ans = probability(l[1], file_words, landa_epsilon)
+        if ans == int(l[0]):
+            true += 1
+        total += 1
+    accuracy = true/total
+    return accuracy
 
 if __name__=="__main__":
     main()
