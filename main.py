@@ -20,11 +20,7 @@ train_files = []
 
 def main():
 
-    # Check command-line arguments
-    if len(sys.argv) != 2:
-        sys.exit("Usage: python questions.py corpus")
-
-    files = load_files(sys.argv[1])
+    files = load_files("train_set")
     file_words = {
         filename: tokenize(files[filename], filename)
         for filename in files
