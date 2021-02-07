@@ -1,6 +1,4 @@
-import nltk
-import sys,os,cv2,sys,string
-from nltk.featstruct import unify
+import sys,os,sys
 import regex
 from regex.regex import escape
 
@@ -18,6 +16,8 @@ try:
 except ImportError:
     pass
 
+train_files = []
+
 def main():
 
     # Check command-line arguments
@@ -29,17 +29,19 @@ def main():
         filename: tokenize(files[filename], filename)
         for filename in files
     }
-    landa_epsilon = [0.1, 0.05, 0.05, 0.9]
-    #ans = probability("هر کسی از ظنّ خود ، شد یار من", file_words, landa_epsilon)
+    lambda_epsilon = [0.001, 0.05, 0.475, 0.475]
 
     # test
-    accuracy = evaluate_accuracy(file_words, landa_epsilon)
+    accuracy = evaluate_accuracy(file_words, lambda_epsilon)
+    print("Accuracy: ")
     print(accuracy)
 
 def load_files(directory):
+    global train_files
     inf = {}
     os.chdir(r"{}".format(directory))
     files = os.listdir()
+    train_files = files
     for file in files:
         f = open(file, encoding="utf8")
         data = f.read()
@@ -48,7 +50,6 @@ def load_files(directory):
     return inf
 
 def tokenize(document, filename):
-    #nltk.download()
     global total_words_num_molavi
     global total_words_num_ferdowsi
     global total_words_num_hafez
@@ -79,87 +80,45 @@ def tokenize(document, filename):
 
     return [uni_count_doc_temp, bi_count_doc_temp]
 
-def probability(sentence, file_counts, landa_epsilon):
+def probability(sentence, file_counts, lambda_epsilon):
     tokens = regex.findall(r'\p{L}+', sentence.replace('\u200c', ''))
     tokens.reverse()
 
-    # ferdowsi_train
-    ferdowsi_prob = 1  
-    for i in range(1, len(tokens)):
-        uni = tokens[i]
-        bi = tokens[i] + ' ' + tokens[i-1]
-        if uni in file_counts["ferdowsi_train.txt"][0]:
-            Pci = float(file_counts["ferdowsi_train.txt"][0][uni])/float(total_words_num_ferdowsi)
-            print(float(file_counts["ferdowsi_train.txt"][0][uni]))
-            print(float(total_words_num_ferdowsi))
-            print(total_words_num_molavi)
-            print(total_words_num_hafez)
-            print(Pci)
-            print("ok")
-        else:
-            Pci = 0
-        if bi in file_counts["ferdowsi_train.txt"][1] and tokens[i-1] in file_counts["ferdowsi_train.txt"][0]:
-            Pcici_1 = float(file_counts["ferdowsi_train.txt"][1][bi])/float(file_counts["ferdowsi_train.txt"][0][tokens[i-1]])
-            print("ok")
-        else:
-            Pcici_1 = 0
-        sum = landa_epsilon[3]*Pcici_1 + landa_epsilon[2]*Pci + landa_epsilon[1]*landa_epsilon[0]
-        print("*************")
-        print(sum)
-        print(ferdowsi_prob)
-        ferdowsi_prob *= sum
-        print(ferdowsi_prob)
-        print("*************")
+    probs = {}
 
-    # hafez_train
-    hafez_prob = 1  
-    for i in range(1, len(tokens)):
-        uni = tokens[i]
-        bi = tokens[i] + ' ' + tokens[i-1]
-        if uni in file_counts["hafez_train.txt"][0]:
-            Pci = float(file_counts["hafez_train.txt"][0][uni])/float(total_words_num_hafez)
-            print("ok")
+    for filename in train_files:
+        if filename == "ferdowsi_train.txt":
+            M = total_words_num_ferdowsi
+        elif filename == "hafez_train.txt":
+            M = total_words_num_hafez
         else:
-            Pci = 0
-        if bi in file_counts["hafez_train.txt"][1] and tokens[i-1] in file_counts["hafez_train.txt"][0]:    
-            Pcici_1 = float(file_counts["hafez_train.txt"][1][bi])/float(file_counts["hafez_train.txt"][0][tokens[i-1]])
-            print("ok")
-        else:
-            Pcici_1 = 0
-        sum = landa_epsilon[3]*Pcici_1 + landa_epsilon[2]*Pci + landa_epsilon[1]*landa_epsilon[0]
-        hafez_prob *= sum
+            M = total_words_num_molavi
 
-    # molavi_train
-    molavi_prob = 1  
-    for i in range(1, len(tokens)):
-        uni = tokens[i]
-        bi = tokens[i] + ' ' + tokens[i-1]
-        if uni in file_counts["molavi_train.txt"][0]:
-            Pci = float(file_counts["molavi_train.txt"][0][uni])/float(total_words_num_molavi)
-            print("ok")
-        else:
-            Pci = 0
-        if bi in file_counts["molavi_train.txt"][1] and tokens[i-1] in file_counts["molavi_train.txt"][0]:    
-            Pcici_1 = float(file_counts["molavi_train.txt"][1][bi])/float(file_counts["molavi_train.txt"][0][tokens[i-1]])
-            print("ok")
-        else:
-            Pcici_1 = 0
-        sum = landa_epsilon[3]*Pcici_1 + landa_epsilon[2]*Pci + landa_epsilon[1]*landa_epsilon[0]
-        molavi_prob *= sum
+        prob = 1  
+        for i in range(1, len(tokens)):
+            uni = tokens[i]
+            bi = tokens[i] + ' ' + tokens[i-1]
+            if uni in file_counts[filename][0]:
+                Pci = float(file_counts[filename][0][uni])/float(M)
+            else:
+                Pci = 0
+            if bi in file_counts[filename][1] and tokens[i-1] in file_counts[filename][0]:
+                Pcici_1 = float(file_counts[filename][1][bi])/float(file_counts[filename][0][tokens[i-1]])
+            else:
+                Pcici_1 = 0
+            sum = lambda_epsilon[3]*Pcici_1 + lambda_epsilon[2]*Pci + lambda_epsilon[1]*lambda_epsilon[0]
+            prob *= sum
+        probs[filename] = prob
     
-    print(ferdowsi_prob)
-    print(hafez_prob)
-    print(molavi_prob)
-    p_ans = max(ferdowsi_prob, hafez_prob, molavi_prob)
-    print(p_ans)
-    if p_ans == ferdowsi_prob:
+    key_max = max(probs.keys(), key=(lambda k: probs[k]))
+    if key_max == "ferdowsi_train.txt":
         return 1
-    elif p_ans == hafez_prob:
+    elif key_max == "hafez_train.txt":
         return 2
-    elif p_ans == molavi_prob:
+    else:
         return 3
 
-def evaluate_accuracy(file_words, landa_epsilon):
+def evaluate_accuracy(file_words, lambda_epsilon):
     file = 'test_file.txt'
     true = 0
     total = 0
@@ -168,7 +127,7 @@ def evaluate_accuracy(file_words, landa_epsilon):
     for line in lines:
         l = line.split('\t')
         l[1] = l[1].replace('\u200c', '').replace('\n', '')
-        ans = probability(l[1], file_words, landa_epsilon)
+        ans = probability(l[1], file_words, lambda_epsilon)
         if ans == int(l[0]):
             true += 1
         total += 1
