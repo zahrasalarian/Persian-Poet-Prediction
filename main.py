@@ -115,7 +115,7 @@ def probability(sentence, file_counts, lambda_epsilon):
         return 3
 
 def evaluate_accuracy(file_words, lambda_epsilon):
-    file = 'test_file.txt'
+    file = 'test_case.txt'
     true = 0
     total = 0
     f = open(file, encoding="utf8")
